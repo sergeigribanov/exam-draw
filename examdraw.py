@@ -83,6 +83,8 @@ def draw(examinators, students):
     # на экзаменатора была минимаоьной
     model.Minimize(upenalty - lpenalty)
     solver = cp_model.CpSolver()
+    # Лимит максимального времени в сек.
+    solver.parameters.max_time_in_seconds = 10.0
     # Поиск решения
     solver.Solve(model)
     # Получение результата
