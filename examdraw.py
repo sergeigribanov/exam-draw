@@ -1,5 +1,6 @@
 import json
 import itertools
+import argparse
 from utils import consistency_check, result_check
 from ortools.sat.python import cp_model
 
@@ -81,8 +82,8 @@ def draw(examinators, students):
     slist = list(itertools.chain(*students.values()))
     exams = dict()
     # Создание переменных для описания мин / макс загруженности экзаменаторов
-    lpenalty =  model.NewIntVar(0, len(slist), 'lower_penalty')
-    upenalty = model.NewIntVar(0, len(slist), 'upper_penalty')
+    lpenalty =  model.NewIntVar(0, int(len(slist) / len(elist)) + 1, 'lower_penalty')
+    upenalty = model.NewIntVar(1, int(len(slist) / (len(elist) - 1)) + 1, 'upper_penalty')
     # Создание булевых переменных (таблица соотвествия {экзаменатор : студент})
     for ename in elist:
         for sname in slist:
@@ -100,7 +101,10 @@ def draw(examinators, students):
     model.Minimize(upenalty - lpenalty)
     solver = cp_model.CpSolver()
     # Лимит максимального времени в сек.
-    solver.parameters.max_time_in_seconds = 10.0
+    solver.parameters.max_time_in_seconds = args.max_time_limit
+    print('SOLVER MAX TIME LIMIT : {} seconds. '
+          'Increase it if the difference between upper and lower penalties is too high (see --help)'
+          .format(solver.parameters.max_time_in_seconds))
     # Поиск решения
     solver.Solve(model)
     # Получение результата
@@ -111,10 +115,19 @@ def draw(examinators, students):
 
     # Печать результата
     # print_result_dict(result)
-    print(solver.Value(lpenalty), solver.Value(upenalty))
+    print('lower penalty : {}, upper penalty : {}'.format(solver.Value(lpenalty), solver.Value(upenalty)))
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-t",
+        "--max-time-limit",
+        type=float,
+        default=2.0,
+        help="Maximum time limit in seonds.",
+    )
+    args = parser.parse_args()
     with open('examinators.json', 'r') as fl:
         examinators = json.load(fl)
 
