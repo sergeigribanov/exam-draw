@@ -69,13 +69,6 @@ def create_result_dict(solver, exams, examinators, students):
     result_check(result)
     return result
 
-# def print_result_dict(result):
-#     for ename in result:
-#         print('\n--------')
-#         print('{}:\n'.format(ename))
-#         for sname in result[ename]:
-#             print(sname)
-
 def draw(examinators, students):
     model = cp_model.CpModel()
     elist = examinators["exam"]
@@ -113,8 +106,6 @@ def draw(examinators, students):
     with open('result.json', 'w', encoding='utf8') as fl:
         json.dump(result, fl, indent=4, sort_keys=True, ensure_ascii=False)
 
-    # Печать результата
-    # print_result_dict(result)
     print('lower penalty : {}, upper penalty : {}'.format(solver.Value(lpenalty), solver.Value(upenalty)))
 
 
