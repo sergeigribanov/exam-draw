@@ -3,24 +3,16 @@ import itertools
 from utils import consistency_check
 from ortools.sat.python import cp_model
 
-def draw(examinators, students):
-    model = cp_model.CpModel()
+
+def student_uniqueness_constraints(model, exams, examinators, students):
     elist = list(examinators.keys())
     slist = list(itertools.chain(*students.values()))
-    exams = dict()
-    lpenalty =  model.NewIntVar(0, len(slist), 'lower_penalty')
-    upenalty = model.NewIntVar(0, len(slist), 'upper_penalty')
-    # Создание булевых переменных (таблица соотвествия {экзаменатор : студент})
-    for ename in elist:
-        for sname in slist:
-            key = (ename, sname)
-            exams[key] = model.NewBoolVar('shift_{}_{}'.format(*key))
-
-    # Констрейны: каждому студенту соответствует только один экзаменатор
     for sname in slist:
         model.Add(sum(exams[(ename, sname)] for ename in elist) == 1)
 
-    # Констрейны: экзаменаторы не могут принимать экзамен у студетов из своих групп
+def exclusion_constraints(model, exams, examinators, students):
+    elist = list(examinators.keys())
+    slist = list(itertools.chain(*students.values()))
     sgroups = set(map(int, itertools.chain(*students.keys())))
     for ename in elist:
         groups = examinators[ename]
@@ -35,26 +27,67 @@ def draw(examinators, students):
             key = (ename, sname)
             model.Add(exams[key] == 0)
 
-    # Констрейны: наименьшее и набольшее количество студетов на экзаменатора
+def uniformity_constraints(model, exams, examinators, students, penalty):
+    elist = list(examinators.keys())
+    slist = list(itertools.chain(*students.values()))
     for ename in elist:
-        model.Add(lpenalty - sum(exams[(ename, sname)] for sname in slist) <= 0)
-        model.Add(upenalty - sum(exams[(ename, sname)] for sname in slist) >= 0)
+        model.Add(penalty[0] - sum(exams[(ename, sname)] for sname in slist) <= 0)
+        model.Add(penalty[1] - sum(exams[(ename, sname)] for sname in slist) >= 0)
 
-
-    # Требуем, чтобы разница между наибольшим и наименьши количеством студетов
-    # на экзаменатора была минимаоьной
-    model.Minimize(upenalty - lpenalty)
-
-    solver = cp_model.CpSolver()
-    solver.Solve(model)
-
+def create_result_dict(solver, exams, examinators, students):
+    result = dict()
+    elist = list(examinators.keys())
+    slist = list(itertools.chain(*students.values()))
     for ename in elist:
-        print('-----')
-        print(ename + ":")
+        result[ename] = list()
         for sname in slist:
             key = (ename, sname)
             if solver.Value(exams[key]) == 1:
-                print(sname)
+                result[ename].append(sname)
+
+    return result
+
+def print_result_dict(result):
+    for ename in result:
+        print('\n--------')
+        print('{}:\n'.format(ename))
+        for sname in result[ename]:
+            print(sname)
+
+def draw(examinators, students):
+    model = cp_model.CpModel()
+    elist = list(examinators.keys())
+    slist = list(itertools.chain(*students.values()))
+    exams = dict()
+    # Создание переменных для описания мин / макс загруженности экзаменаторов
+    lpenalty =  model.NewIntVar(0, len(slist), 'lower_penalty')
+    upenalty = model.NewIntVar(0, len(slist), 'upper_penalty')
+    # Создание булевых переменных (таблица соотвествия {экзаменатор : студент})
+    for ename in elist:
+        for sname in slist:
+            key = (ename, sname)
+            exams[key] = model.NewBoolVar('shift_{}_{}'.format(*key))
+
+    # Констрейны: каждому студенту соответствует только один экзаменатор
+    student_uniqueness_constraints(model, exams, examinators, students)
+    # Констрейны: экзаменаторы не могут принимать экзамен у студетов из своих групп
+    exclusion_constraints(model, exams, examinators, students)
+    # Констрейны: наименьшее и набольшее количество студетов на экзаменатора
+    uniformity_constraints(model, exams, examinators, students, [lpenalty, upenalty])
+    # Требуем, чтобы разница между наибольшим и наименьши количеством студетов
+    # на экзаменатора была минимаоьной
+    model.Minimize(upenalty - lpenalty)
+    solver = cp_model.CpSolver()
+    # Поиск решения
+    solver.Solve(model)
+    # Получение результата
+    result = create_result_dict(solver, exams, examinators, students)
+    # Сохранение результата в файл
+    with open('result.json', 'w', encoding='utf8') as fl:
+        json.dump(result, fl, indent=4, sort_keys=True, ensure_ascii=False)
+
+    # Печать результата
+    print_result_dict(result)
 
 if __name__ == '__main__':
     with open('examinators.json', 'r') as fl:
