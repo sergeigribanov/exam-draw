@@ -1,5 +1,6 @@
 import json
 import random
+import argparse
 from faker import Faker
 from utils import exam_groups
 
@@ -22,4 +23,13 @@ def generate_students(n, output_path, input_path='examinators.json'):
         json.dump(result, fl, indent=4, sort_keys=True, ensure_ascii=False)
 
 if __name__ == '__main__':
-    generate_students(30, 'students.json')
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-n",
+        "--number-of-students",
+        type=int,
+        default=37,
+        help="Maximum time limit in seonds.",
+    )
+    args = parser.parse_args()
+    generate_students(args.number_of_students, 'students.json')
