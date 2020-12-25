@@ -29,7 +29,7 @@ if __name__ == '__main__':
         "--number-of-students",
         type=int,
         default=37,
-        help="Maximum time limit in seonds.",
+        help="Number of dummy students.",
     )
     args = parser.parse_args()
     generate_students(args.number_of_students, 'students.json')
