@@ -1,6 +1,6 @@
 import json
 import itertools
-from utils import consistency_check
+from utils import consistency_check, result_check
 from ortools.sat.python import cp_model
 
 
@@ -13,7 +13,7 @@ def student_uniqueness_constraints(model, exams, examinators, students):
 def exclusion_constraints(model, exams, examinators, students):
     elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
-    sgroups = set(map(int, itertools.chain(*students.keys())))
+    sgroups = set(map(int, itertools.chain(students.keys())))
 
     for ename in elist:
         if ename not in examinators["all"]:
@@ -39,25 +39,41 @@ def uniformity_constraints(model, exams, examinators, students, penalty):
         model.Add(penalty[0] - sum(exams[(ename, sname)] for sname in slist) <= 0)
         model.Add(penalty[1] - sum(exams[(ename, sname)] for sname in slist) >= 0)
 
+def get_student_group(sname, students):
+    group = None
+    for key in students:
+        if sname in students[key]:
+            group = key
+            break
+
+    return int(group)
+
 def create_result_dict(solver, exams, examinators, students):
     result = dict()
     elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     for ename in elist:
-        result[ename] = list()
+        result[ename] = dict()
+        result[ename]['groups'] = []
+        if ename in examinators['all']:
+            result[ename]['groups'] = examinators['all'][ename]
+
+        result[ename]['students'] = list()
         for sname in slist:
             key = (ename, sname)
             if solver.Value(exams[key]) == 1:
-                result[ename].append(sname)
+                group = get_student_group(sname, students)
+                result[ename]['students'].append((sname, group))
 
+    result_check(result)
     return result
 
-def print_result_dict(result):
-    for ename in result:
-        print('\n--------')
-        print('{}:\n'.format(ename))
-        for sname in result[ename]:
-            print(sname)
+# def print_result_dict(result):
+#     for ename in result:
+#         print('\n--------')
+#         print('{}:\n'.format(ename))
+#         for sname in result[ename]:
+#             print(sname)
 
 def draw(examinators, students):
     model = cp_model.CpModel()
@@ -95,6 +111,8 @@ def draw(examinators, students):
 
     # Печать результата
     # print_result_dict(result)
+    print(solver.Value(lpenalty), solver.Value(upenalty))
+
 
 if __name__ == '__main__':
     with open('examinators.json', 'r') as fl:

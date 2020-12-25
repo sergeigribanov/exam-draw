@@ -18,3 +18,14 @@ def consistency_check(examinators, students):
     sgroups = set(map(int, students.keys()))
     egroups = exam_groups(examinators)
     return sgroups.issubset(egroups)
+
+def result_check(result):
+    for ename in result:
+        groups = result[ename]['groups']
+        if type(groups) is int:
+            groups = [groups]
+
+        for sname, group in result[ename]['students']:
+            if group in groups:
+                flag = False
+                print('[!!!] Warning: the examinator {} and the {} have the same groups.'.format(ename, sname))
