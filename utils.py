@@ -2,8 +2,8 @@ import json
 
 def exam_groups(examinators):
     result = set()
-    for key in examinators:
-        lst = examinators[key]
+    for key in examinators["all"]:
+        lst = examinators["all"][key]
         if type(lst) is int:
             lst = [lst]
 

@@ -5,17 +5,22 @@ from ortools.sat.python import cp_model
 
 
 def student_uniqueness_constraints(model, exams, examinators, students):
-    elist = list(examinators.keys())
+    elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     for sname in slist:
         model.Add(sum(exams[(ename, sname)] for ename in elist) == 1)
 
 def exclusion_constraints(model, exams, examinators, students):
-    elist = list(examinators.keys())
+    elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     sgroups = set(map(int, itertools.chain(*students.keys())))
+
     for ename in elist:
-        groups = examinators[ename]
+        if ename not in examinators["all"]:
+            print('[!] Skipping exclusion constraint: examinator {} not in "all" list.'.format(ename))
+            continue
+
+        groups = examinators["all"][ename]
         if type(groups) is int:
             groups = [groups]
 
@@ -28,7 +33,7 @@ def exclusion_constraints(model, exams, examinators, students):
             model.Add(exams[key] == 0)
 
 def uniformity_constraints(model, exams, examinators, students, penalty):
-    elist = list(examinators.keys())
+    elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     for ename in elist:
         model.Add(penalty[0] - sum(exams[(ename, sname)] for sname in slist) <= 0)
@@ -36,7 +41,7 @@ def uniformity_constraints(model, exams, examinators, students, penalty):
 
 def create_result_dict(solver, exams, examinators, students):
     result = dict()
-    elist = list(examinators.keys())
+    elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     for ename in elist:
         result[ename] = list()
@@ -56,7 +61,7 @@ def print_result_dict(result):
 
 def draw(examinators, students):
     model = cp_model.CpModel()
-    elist = list(examinators.keys())
+    elist = examinators["exam"]
     slist = list(itertools.chain(*students.values()))
     exams = dict()
     # Создание переменных для описания мин / макс загруженности экзаменаторов
@@ -87,7 +92,7 @@ def draw(examinators, students):
         json.dump(result, fl, indent=4, sort_keys=True, ensure_ascii=False)
 
     # Печать результата
-    print_result_dict(result)
+    # print_result_dict(result)
 
 if __name__ == '__main__':
     with open('examinators.json', 'r') as fl:
