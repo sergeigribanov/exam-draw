@@ -1,13 +1,16 @@
 import json
 import random
 from faker import Faker
-from utils import load_exam_groups
+from utils import exam_groups
 
 
 def generate_students(n, output_path, input_path='examinators.json'):
     result = dict()
-    fake = Faker('ru_RU')
-    groups = load_exam_groups(input_path)
+    fake = Faker(['ru_RU'])
+    with open(input_path, 'r') as fl:
+        examinators = json.load(fl)
+
+    groups = exam_groups(examinators)
     for i in range(n):
         group = random.sample(groups, 1)[0]
         if group not in result:
@@ -19,4 +22,4 @@ def generate_students(n, output_path, input_path='examinators.json'):
         json.dump(result, fl, indent=4, sort_keys=True, ensure_ascii=False)
 
 if __name__ == '__main__':
-    generate_students(100, 'students.json')
+    generate_students(30, 'students.json')

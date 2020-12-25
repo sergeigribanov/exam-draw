@@ -1,13 +1,9 @@
 import json
 
-def load_exam_groups(path):
-    print(path)
-    with open(path, 'r') as fl:
-        data = json.load(fl)
-
+def exam_groups(examinators):
     result = set()
-    for key in data:
-        lst = data[key]
+    for key in examinators:
+        lst = examinators[key]
         if type(lst) is int:
             lst = [lst]
 
@@ -17,3 +13,8 @@ def load_exam_groups(path):
         result = result.union(lst)
 
     return result
+
+def consistency_check(examinators, students):
+    sgroups = set(map(int, students.keys()))
+    egroups = exam_groups(examinators)
+    return sgroups.issubset(egroups)
